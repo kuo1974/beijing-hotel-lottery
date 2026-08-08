@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🏨 北京旅游飯店抽抽樂 - JAVASCRIPT (DYNAMIC RESPONSIVE REEL ALIGNMENT)
+   🏨 北京旅游飯店抽抽樂 - JAVASCRIPT (PERFECT REEL CENTER ALIGNMENT FIX)
    ========================================================================== */
 
 (function () {
@@ -252,26 +252,26 @@
 
             const displayList = candidates.length > 0 ? candidates : ['(無飯店資料)'];
 
-            for (let i = 0; i < 5; i++) {
+            // Build a repeating list of 10 cycles
+            for (let i = 0; i < 10; i++) {
                 displayList.forEach((item, itemIdx) => {
                     const card = createCardElement(item, itemIdx + 1);
+                    if (i === 4 && itemIdx === 0) {
+                        card.dataset.centerDefault = 'true';
+                    }
                     strip.appendChild(card);
                 });
             }
 
             // Align initial reel payline dynamically
             setTimeout(() => {
-                const sampleCard = strip.querySelector('.slot-card');
-                if (sampleCard && reelFrame) {
-                    const cardRect = sampleCard.getBoundingClientRect();
-                    const style = window.getComputedStyle(sampleCard);
-                    const marginTop = parseFloat(style.marginTop) || 0;
-                    const marginBottom = parseFloat(style.marginBottom) || 0;
-                    const fullCardHeight = cardRect.height + marginTop + marginBottom;
-
+                const targetCard = strip.querySelector('[data-center-default="true"]') || strip.querySelector('.slot-card');
+                if (targetCard && reelFrame) {
+                    const cardTop = targetCard.offsetTop;
+                    const cardHeight = targetCard.offsetHeight;
                     const frameHeight = reelFrame.clientHeight;
-                    const centerOffset = (frameHeight - cardRect.height) / 2 - marginTop;
-                    strip.style.transform = `translateY(${centerOffset}px)`;
+                    const targetY = (frameHeight - cardHeight) / 2 - cardTop;
+                    strip.style.transform = `translateY(${targetY}px)`;
                 }
             }, 50);
         });
@@ -295,7 +295,7 @@
     }
 
     // ----------------------------------------------------------------------
-    // 5. DYNAMIC RESPONSIVE SPIN ANIMATION LOGIC
+    // 5. PERFECT REEL SPIN & ACCURATE CENTER ALIGNMENT LOGIC
     // ----------------------------------------------------------------------
     function startSpin() {
         if (isSpinning) return;
@@ -331,7 +331,7 @@
 
     function animateReels(winnerItem) {
         const strips = [strip1, strip2, strip3];
-        const totalSpinCount = 26;
+        const spinRounds = [24, 30, 36]; // Cards to roll past
         const delays = [2200, 2700, 3200];
 
         spinTickPitchIndex = 0;
@@ -343,66 +343,71 @@
             strip.innerHTML = '';
             const sequence = [];
             
-            sequence.push(candidates[0] || '飯店');
-            
-            for (let i = 0; i < totalSpinCount + index * 5; i++) {
-                const randomItem = candidates[Math.floor(Math.random() * candidates.length)];
-                sequence.push(randomItem);
+            // 1. Add 3 padding items at top
+            for (let p = 0; p < 3; p++) {
+                sequence.push({ text: candidates[p % candidates.length], isWinner: false });
             }
-            
-            sequence.push(winnerItem);
-            sequence.push(candidates[1] || candidates[0] || '飯店');
-            sequence.push(candidates[2] || candidates[0] || '飯店');
 
-            sequence.forEach((text, i) => {
-                const card = createCardElement(text, (i % candidates.length) + 1);
-                if (text === winnerItem && i === sequence.length - 3) {
+            // 2. Add spin filler items
+            const rollCount = spinRounds[index];
+            for (let i = 0; i < rollCount; i++) {
+                const randomItem = candidates[Math.floor(Math.random() * candidates.length)];
+                sequence.push({ text: randomItem, isWinner: false });
+            }
+
+            // 3. Add target WINNING ITEM
+            sequence.push({ text: winnerItem, isWinner: true });
+
+            // 4. CRITICAL: Add 15 extra padding items AFTER target winner so reel box is ALWAYS FULL below the winner!
+            for (let p = 0; p < 15; p++) {
+                sequence.push({ text: candidates[p % candidates.length], isWinner: false });
+            }
+
+            // Append cards to strip DOM
+            sequence.forEach((itemObj, i) => {
+                const card = createCardElement(itemObj.text, (i % candidates.length) + 1);
+                if (itemObj.isWinner) {
                     card.dataset.winner = 'true';
                 }
                 strip.appendChild(card);
             });
 
-            // Target winning card index is sequence.length - 3
-            const winnerCardIdx = sequence.length - 3;
-
-            // Measure actual rendered dimensions dynamically from DOM (Fixes Mobile iPhone misalignment!)
-            const sampleCard = strip.querySelector('.slot-card');
-            const cardRect = sampleCard.getBoundingClientRect();
-            const cardStyle = window.getComputedStyle(sampleCard);
-            const marginTop = parseFloat(cardStyle.marginTop) || 0;
-            const marginBottom = parseFloat(cardStyle.marginBottom) || 0;
-            const fullCardHeight = cardRect.height + marginTop + marginBottom;
-
-            const frameHeight = reelFrame ? reelFrame.clientHeight : 230;
-            const paylineCenterOffset = (frameHeight - cardRect.height) / 2 - marginTop;
-
-            // Calculate precise Y translation to align winner card in center of payline
-            const targetY = -(winnerCardIdx * fullCardHeight) + paylineCenterOffset;
-
-            strip.classList.add('spinning');
-            strip.style.transition = 'none';
-            strip.style.transform = 'translateY(0px)';
-
-            void strip.offsetHeight;
-
-            const duration = delays[index];
-            strip.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.85, 0.35, 1.0)`;
-            strip.style.transform = `translateY(${targetY}px)`;
-
+            // Calculate precise alignment Y translation to center the winning card in payline frame
             setTimeout(() => {
-                strip.classList.remove('spinning');
-                playStopAudio();
-
                 const winnerCardNode = strip.querySelector('[data-winner="true"]');
+                const frameHeight = reelFrame ? reelFrame.clientHeight : 230;
+
+                let targetY = 0;
                 if (winnerCardNode) {
-                    winnerCardNode.classList.add('winner');
+                    const cardTop = winnerCardNode.offsetTop;
+                    const cardHeight = winnerCardNode.offsetHeight;
+                    targetY = (frameHeight - cardHeight) / 2 - cardTop;
                 }
 
-                if (index === strips.length - 1) {
-                    clearInterval(tickInterval);
-                    finishSpin(winnerItem);
-                }
-            }, duration);
+                strip.classList.add('spinning');
+                strip.style.transition = 'none';
+                strip.style.transform = 'translateY(0px)';
+
+                void strip.offsetHeight; // Force DOM reflow
+
+                const duration = delays[index];
+                strip.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.85, 0.35, 1.0)`;
+                strip.style.transform = `translateY(${targetY}px)`;
+
+                setTimeout(() => {
+                    strip.classList.remove('spinning');
+                    playStopAudio();
+
+                    if (winnerCardNode) {
+                        winnerCardNode.classList.add('winner');
+                    }
+
+                    if (index === strips.length - 1) {
+                        clearInterval(tickInterval);
+                        finishSpin(winnerItem);
+                    }
+                }, duration);
+            }, 30);
         });
     }
 
@@ -434,7 +439,6 @@
         }
     });
 
-    // Handle window resize dynamically to adjust payline alignment
     window.addEventListener('resize', () => {
         if (!isSpinning) {
             renderInitialReels();
