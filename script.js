@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🏨 北京旅游飯店抽抽樂 - JAVASCRIPT
+   🏨 北京旅游飯店抽抽樂 - JAVASCRIPT (DYNAMIC RESPONSIVE REEL ALIGNMENT)
    ========================================================================== */
 
 (function () {
@@ -25,6 +25,7 @@
     // ----------------------------------------------------------------------
     // 2. DOM ELEMENTS
     // ----------------------------------------------------------------------
+    const reelFrame = document.querySelector('.reel-window-frame');
     const strip1 = document.getElementById('strip-1');
     const strip2 = document.getElementById('strip-2');
     const strip3 = document.getElementById('strip-3');
@@ -248,7 +249,6 @@
         strips.forEach(strip => {
             strip.innerHTML = '';
             strip.style.transition = 'none';
-            strip.style.transform = 'translateY(-10px)';
 
             const displayList = candidates.length > 0 ? candidates : ['(無飯店資料)'];
 
@@ -258,6 +258,22 @@
                     strip.appendChild(card);
                 });
             }
+
+            // Align initial reel payline dynamically
+            setTimeout(() => {
+                const sampleCard = strip.querySelector('.slot-card');
+                if (sampleCard && reelFrame) {
+                    const cardRect = sampleCard.getBoundingClientRect();
+                    const style = window.getComputedStyle(sampleCard);
+                    const marginTop = parseFloat(style.marginTop) || 0;
+                    const marginBottom = parseFloat(style.marginBottom) || 0;
+                    const fullCardHeight = cardRect.height + marginTop + marginBottom;
+
+                    const frameHeight = reelFrame.clientHeight;
+                    const centerOffset = (frameHeight - cardRect.height) / 2 - marginTop;
+                    strip.style.transform = `translateY(${centerOffset}px)`;
+                }
+            }, 50);
         });
     }
 
@@ -279,7 +295,7 @@
     }
 
     // ----------------------------------------------------------------------
-    // 5. SPIN ANIMATION LOGIC
+    // 5. DYNAMIC RESPONSIVE SPIN ANIMATION LOGIC
     // ----------------------------------------------------------------------
     function startSpin() {
         if (isSpinning) return;
@@ -315,9 +331,6 @@
 
     function animateReels(winnerItem) {
         const strips = [strip1, strip2, strip3];
-        const cardHeight = 80;
-        const reelCenterOffset = (230 - 70) / 2;
-
         const totalSpinCount = 26;
         const delays = [2200, 2700, 3200];
 
@@ -349,8 +362,22 @@
                 strip.appendChild(card);
             });
 
+            // Target winning card index is sequence.length - 3
             const winnerCardIdx = sequence.length - 3;
-            const targetY = -(winnerCardIdx * cardHeight) + reelCenterOffset - 5;
+
+            // Measure actual rendered dimensions dynamically from DOM (Fixes Mobile iPhone misalignment!)
+            const sampleCard = strip.querySelector('.slot-card');
+            const cardRect = sampleCard.getBoundingClientRect();
+            const cardStyle = window.getComputedStyle(sampleCard);
+            const marginTop = parseFloat(cardStyle.marginTop) || 0;
+            const marginBottom = parseFloat(cardStyle.marginBottom) || 0;
+            const fullCardHeight = cardRect.height + marginTop + marginBottom;
+
+            const frameHeight = reelFrame ? reelFrame.clientHeight : 230;
+            const paylineCenterOffset = (frameHeight - cardRect.height) / 2 - marginTop;
+
+            // Calculate precise Y translation to align winner card in center of payline
+            const targetY = -(winnerCardIdx * fullCardHeight) + paylineCenterOffset;
 
             strip.classList.add('spinning');
             strip.style.transition = 'none';
@@ -404,6 +431,13 @@
         if (e.code === 'Space' && !isSpinning && document.activeElement.tagName !== 'INPUT') {
             e.preventDefault();
             startSpin();
+        }
+    });
+
+    // Handle window resize dynamically to adjust payline alignment
+    window.addEventListener('resize', () => {
+        if (!isSpinning) {
+            renderInitialReels();
         }
     });
 
@@ -530,7 +564,6 @@
         }
     }
 
-    // Render Candidates list with INLINE EDITING and DELETION
     function renderCandidatesList() {
         candidatesUl.innerHTML = '';
         modalCount.textContent = candidates.length;
@@ -550,19 +583,16 @@
             const actionContainer = document.createElement('div');
             actionContainer.className = 'item-action-btns';
 
-            // Edit button
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-item-btn';
             editBtn.innerHTML = '✏️';
             editBtn.title = '編輯此飯店名稱';
 
-            // Delete button
             const delBtn = document.createElement('button');
             delBtn.className = 'delete-item-btn';
             delBtn.innerHTML = '🗑️';
             delBtn.title = '刪除此飯店';
 
-            // Inline edit trigger
             editBtn.addEventListener('click', () => {
                 li.innerHTML = '';
 
