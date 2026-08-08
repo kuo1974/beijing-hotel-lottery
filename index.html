@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏨 北京旅游飯店抽抽樂</title>
+    <meta name="description" content="北京旅游飯店抽抽樂 - 線上飯店抽籤系統，支援手動編輯、新增與刪除名單、重頭開始重置、熱鬧音效與次數統計。">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800;900&family=Outfit:wght@600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Fullscreen Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Main Container -->
+    <div class="app-wrapper">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-title">
+                <span class="casino-icon">🏨</span>
+                <h1>北京旅游飯店抽抽樂</h1>
+            </div>
+            <div class="top-actions">
+                <button id="btn-restart" class="icon-btn btn-restart-style" title="重頭開始（清空所有統計與紀錄）" aria-label="重頭開始">
+                    <span>🔄 重頭開始</span>
+                </button>
+                <button id="btn-list-modal" class="icon-btn" title="編輯飯店名單" aria-label="編輯飯店名單">
+                    <span>⚙️ 編輯名單 (<span id="candidate-count">6</span>)</span>
+                </button>
+                <button id="btn-history-toggle" class="icon-btn" title="抽籤紀錄與次數統計" aria-label="抽籤紀錄與次數統計">
+                    <span>📊 紀錄與統計</span>
+                </button>
+                <button id="btn-sound" class="icon-btn icon-only-btn" title="切換音效" aria-label="切換音效">
+                    <span id="sound-icon">🔊</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Slot Machine Stage -->
+        <main class="stage-container">
+            <div class="slot-machine-wrapper">
+                
+                <!-- Main Cabinet (Machine Body) -->
+                <div class="slot-cabinet">
+                    
+                    <!-- Top Marquee Display -->
+                    <div class="marquee-header">
+                        <div class="light-bulbs left-bulbs">
+                            <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
+                        </div>
+                        <div class="marquee-text">
+                            <span class="sparkle">✨</span> 北京旅游飯店抽抽樂 <span class="sparkle">✨</span>
+                        </div>
+                        <div class="light-bulbs right-bulbs">
+                            <span class="bulb"></span><span class="bulb"></span><span class="bulb"></span>
+                        </div>
+                    </div>
+
+                    <!-- Screen Frame & Reels -->
+                    <div class="reel-window-frame">
+                        <div class="payline-indicator left-arrow">▶</div>
+                        
+                        <div class="reels-container" id="reels-container">
+                            <!-- Reel 1 -->
+                            <div class="reel-box" id="reel-1">
+                                <div class="reel-strip" id="strip-1">
+                                    <!-- Dynamic Cards -->
+                                </div>
+                            </div>
+                            
+                            <!-- Reel 2 -->
+                            <div class="reel-box" id="reel-2">
+                                <div class="reel-strip" id="strip-2">
+                                    <!-- Dynamic Cards -->
+                                </div>
+                            </div>
+
+                            <!-- Reel 3 -->
+                            <div class="reel-box" id="reel-3">
+                                <div class="reel-strip" id="strip-3">
+                                    <!-- Dynamic Cards -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="payline-indicator right-arrow">◀</div>
+                        <div class="glass-glare"></div>
+                    </div>
+
+                    <!-- Status Display Bar -->
+                    <div class="status-bar">
+                        <div class="status-message" id="status-message">準備就緒，點擊下方「開始抽籤」吧！</div>
+                    </div>
+
+                    <!-- Machine Bottom Controls -->
+                    <div class="cabinet-controls">
+                        <div class="toggle-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="toggle-no-repeat">
+                                <span class="slider round"></span>
+                                <span class="label-text">避開已中獎 (不重複)</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Main Action Button -->
+                        <button id="btn-spin" class="spin-btn">
+                            <span class="btn-shine"></span>
+                            <span class="btn-text">🎉 開始抽籤</span>
+                        </button>
+                    </div>
+
+                    <div class="coin-tray">
+                        <div class="tray-slot"></div>
+                        <div class="gold-coin-glow"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal 1: Candidates Management (手動編輯、新增、刪除名單) -->
+    <div id="modal-candidates" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>⚙️ 編輯飯店抽籤名單</h2>
+                <button class="modal-close" id="btn-close-candidates">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-add-group">
+                    <input type="text" id="input-new-candidate" placeholder="輸入飯店名稱 (例如: 新飯店名稱)..." maxlength="30">
+                    <button id="btn-add-candidate" class="btn-primary">➕ 新增飯店</button>
+                </div>
+                
+                <div class="list-summary">
+                    <span>名單共 <strong id="modal-count">6</strong> 家飯店 (可直接點擊✏️編輯或🗑️刪除)</span>
+                    <div class="summary-btn-group">
+                        <button id="btn-clear-candidates" class="btn-link text-danger">🧹 全部清空</button>
+                        <button id="btn-reset-default" class="btn-link">🔄 還原預設 (6家)</button>
+                    </div>
+                </div>
+
+                <div class="candidates-list-wrapper">
+                    <ul id="candidates-ul" class="candidates-ul">
+                        <!-- Dynamic LI elements with direct text editing & delete buttons -->
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-save-candidates" class="btn-primary btn-block">💾 儲存名單設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Winner Celebration Popup -->
+    <div id="modal-winner" class="modal-overlay">
+        <div class="modal-card winner-card">
+            <div class="winner-header">
+                <div class="crown-icon">👑</div>
+                <h2>🥳 恭喜抽中 🥳</h2>
+            </div>
+            <div class="winner-body">
+                <div class="winner-badge">HOTEL WINNER</div>
+                <div class="winner-title" id="winner-name">長富宮</div>
+                <p class="winner-subtitle" id="winner-count-stat">已累計抽中 1 次</p>
+            </div>
+            <div class="winner-footer">
+                <button id="btn-copy-winner" class="btn-secondary">📋 複製飯店名稱</button>
+                <button id="btn-spin-again" class="btn-primary">🎰 再抽一次</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer: History & Statistics Panel -->
+    <div id="history-drawer" class="history-drawer">
+        <div class="drawer-header">
+            <h3>📊 抽籤紀錄與次數統計</h3>
+            <button class="modal-close" id="btn-close-history">&times;</button>
+        </div>
+        <div class="drawer-body">
+            <!-- Tabs Header -->
+            <div class="drawer-tabs">
+                <button id="tab-stats" class="tab-btn active">📊 次數統計</button>
+                <button id="tab-list" class="tab-btn">📜 時間列表</button>
+            </div>
+
+            <div class="history-actions">
+                <span class="history-count">總共抽籤 <strong id="history-total">0</strong> 次</span>
+                <button id="btn-clear-history" class="btn-danger-sm">🗑️ 清空紀錄與統計</button>
+            </div>
+
+            <!-- Tab Content 1: Statistics Breakdown -->
+            <div id="tab-content-stats" class="tab-content active">
+                <div id="stats-container" class="stats-container">
+                    <!-- Dynamic Stat Bars -->
+                </div>
+            </div>
+
+            <!-- Tab Content 2: Chronological List -->
+            <div id="tab-content-list" class="tab-content">
+                <ul id="history-ul" class="history-ul">
+                    <!-- Dynamic History items -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
